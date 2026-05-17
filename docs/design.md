@@ -69,6 +69,7 @@ The page should feel simpler than a research survey. The visitor should understa
 
 - `go-nomad-adv` owns its own SQLite database and does not call `go-nomad-api`.
 - Server route handlers initialize the SQLite schema lazily on first access.
+- Docker runtime stores SQLite under `/app/.data`; the mounted directory must be writable by the non-root app user before health checks run.
 - The UI talks only to local API routes under `/api/market-vote/*`.
 - No secrets are required for local development.
 
@@ -77,3 +78,4 @@ The page should feel simpler than a research survey. The visitor should understa
 - TypeScript and production build must pass with `yarn build` or the root `build:adv` script.
 - Lint must pass with `yarn lint` or the root `lint:adv` script.
 - The probe check must confirm that the SQLite-backed submit endpoint records service interest and returns updated aggregate data.
+- Production deployment must verify the SQLite data mount is writable before the container is expected to become healthy.

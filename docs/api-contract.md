@@ -5,9 +5,10 @@
 SQLite database path:
 
 - default: `.data/go-nomad-adv.sqlite`
+- Docker default: `/app/.data/go-nomad-adv.sqlite`
 - override: `GO_NOMAD_ADV_DB_PATH`
 
-The schema is initialized by the application on first request.
+The schema is initialized by the application on first request. The application creates the parent directory when possible, but the runtime directory must already be writable by the app process; otherwise SQLite returns `unable to open database file` and the snapshot health check fails.
 
 ## Tables
 

@@ -32,7 +32,8 @@ ADV_BASE_URL=http://localhost:6003 yarn probe
 
 ```bash
 docker build -t go-nomad-adv:local .
-docker run --rm -p 6003:6003 -v "$PWD/.data:/app/.data" go-nomad-adv:local
+docker volume create go-nomad-adv-data
+docker run --rm -p 6003:6003 -v go-nomad-adv-data:/app/.data go-nomad-adv:local
 ```
 
 The container stores SQLite data at `/app/.data/go-nomad-adv.sqlite`.
@@ -62,6 +63,8 @@ Optional repository variables:
 The server must have Docker installed and the SSH user must be able to run Docker commands. Push to `main` or run the workflow manually from GitHub Actions to deploy.
 
 The SWR namespace is fixed to `go-nomads-v2` in the workflow.
+
+The deployment workflow mounts server data at `/app/.data` and repairs that mount's ownership before starting the app, so SQLite can create the database, WAL, and journal files while the container runs as the non-root `nextjs` user.
 
 ## Data
 

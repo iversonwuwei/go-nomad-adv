@@ -10,7 +10,7 @@ The first release should help a visitor complete three simple actions in one ses
 2. mark which services they would use or want to learn more about
 3. optionally leave audience profile and contact details so Go Nomad can estimate real audience size
 
-All submissions are persisted to a local SQLite database inside the project so this workflow can run independently from `go-nomad-api`.
+All submissions are persisted to a local SQLite database in the app runtime data volume so this workflow can run independently from `go-nomad-api`.
 
 ## Product Direction
 
@@ -77,4 +77,5 @@ All submissions are persisted to a local SQLite database inside the project so t
 
 - The project is additive under `go-nomad-adv` and does not alter existing Go Nomad runtime services.
 - The SQLite file is local runtime state under `.data/` and can be deleted to reset the data.
+- Docker production deployments must provide a writable `/app/.data` mount for the app user because the public snapshot endpoint initializes SQLite during the health gate.
 - Rollback is removing the `go-nomad-adv` route/process or hiding links to it; collected SQLite data can be archived separately.
