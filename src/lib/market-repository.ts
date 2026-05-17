@@ -1,19 +1,19 @@
 import { randomUUID } from "node:crypto";
 
 import {
-  BLOCKER_OPTIONS,
-  BUDGET_OPTIONS,
-  CONTACT_METHOD_OPTIONS,
-  FOLLOWUP_OPTIONS,
-  MARKET_FEATURES,
-  REGION_OPTIONS,
-  SEGMENT_OPTIONS,
-  TIMELINE_OPTIONS,
-  WORK_MODE_OPTIONS,
-  type MarketFeature,
-  type SelectOption,
-  getFeatureById,
-  isKnownOption,
+    BLOCKER_OPTIONS,
+    BUDGET_OPTIONS,
+    CONTACT_METHOD_OPTIONS,
+    FOLLOWUP_OPTIONS,
+    getFeatureById,
+    isKnownOption,
+    MARKET_FEATURES,
+    REGION_OPTIONS,
+    SEGMENT_OPTIONS,
+    TIMELINE_OPTIONS,
+    WORK_MODE_OPTIONS,
+    type MarketFeature,
+    type SelectOption,
 } from "./market-data";
 import { getDatabase } from "./sqlite";
 

@@ -1,11 +1,11 @@
 import { MarketVoteClient } from "@/components/market-vote-client";
 import {
-  BLOCKER_OPTIONS,
-  CONTACT_METHOD_OPTIONS,
-  FOLLOWUP_OPTIONS,
-  MARKET_FEATURES,
-  REGION_OPTIONS,
-  SEGMENT_OPTIONS,
+    BLOCKER_OPTIONS,
+    CONTACT_METHOD_OPTIONS,
+    FOLLOWUP_OPTIONS,
+    MARKET_FEATURES,
+    REGION_OPTIONS,
+    SEGMENT_OPTIONS,
 } from "@/lib/market-data";
 
 export const dynamic = "force-dynamic";
