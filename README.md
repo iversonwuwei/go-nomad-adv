@@ -20,13 +20,54 @@ yarn dev
 
 The app runs on `http://localhost:6003`.
 
+By default, metadata routes use `https://vote.go-nomads.com` as the production canonical URL and `http://localhost:6003` in local development. Override this only when necessary:
+
+```bash
+GO_NOMAD_ADV_SITE_URL=https://your-domain.example yarn dev
+```
+
 ## Checks
 
 ```bash
 yarn lint
 yarn build
 ADV_BASE_URL=http://localhost:6003 yarn probe
+ADV_DISCOVERY_BASE_URL=https://vote.go-nomads.com yarn discovery-check
 ```
+
+`discovery-check` is read-only. It fetches the rendered homepage and discovery routes to verify canonical metadata, FAQPage JSON-LD, visible FAQ content, `llms.txt`, `robots.txt`, `sitemap.xml`, `manifest.webmanifest`, and the Open Graph/Twitter image endpoints.
+
+When you validate a local or temporary server that still renders a different public canonical URL, set both values explicitly:
+
+```bash
+ADV_DISCOVERY_BASE_URL=http://127.0.0.1:6106 \
+ADV_DISCOVERY_EXPECTED_SITE_URL=https://vote.go-nomads.com \
+yarn discovery-check
+```
+
+The app also exposes these crawl and AI-discovery routes:
+
+- `/robots.txt`
+- `/sitemap.xml`
+- `/manifest.webmanifest`
+- `/llms.txt`
+- `/opengraph-image`
+- `/twitter-image`
+
+After deployment, verify these endpoints on the live domain:
+
+- `https://vote.go-nomads.com/`
+- `https://vote.go-nomads.com/robots.txt`
+- `https://vote.go-nomads.com/sitemap.xml`
+- `https://vote.go-nomads.com/llms.txt`
+- `https://vote.go-nomads.com/opengraph-image`
+- `https://vote.go-nomads.com/twitter-image`
+
+Recommended post-deploy search steps:
+
+- submit `https://vote.go-nomads.com/sitemap.xml` to Google Search Console
+- submit `https://vote.go-nomads.com/sitemap.xml` to Bing Webmaster Tools
+- use the live homepage URL in URL Inspection / Fetch tools to confirm canonical, FAQ content, and Open Graph image are visible
 
 ## Docker
 
@@ -41,6 +82,8 @@ The container stores SQLite data at `/app/.data/go-nomad-adv.sqlite`.
 ## GitHub Actions deployment
 
 The workflow at `.github/workflows/deploy.yml` validates the app, builds a Docker image in GitHub Actions, pushes the image to SWR, copies the production environment file to the server, and restarts the Docker container from the SWR image.
+
+After the remote container becomes healthy, the workflow also runs `node scripts/discovery-check.mjs` against the live public base URL `https://vote.go-nomads.com` so deployment success includes public-domain discoverability checks.
 
 Configure these repository secrets before deploying:
 

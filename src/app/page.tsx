@@ -7,18 +7,29 @@ import {
     REGION_OPTIONS,
     SEGMENT_OPTIONS,
 } from "@/lib/market-data";
+import { buildStructuredData } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
 export default function Home() {
+  const structuredData = buildStructuredData(MARKET_FEATURES);
+
   return (
-    <MarketVoteClient
-      blockerOptions={BLOCKER_OPTIONS}
-      contactMethodOptions={CONTACT_METHOD_OPTIONS}
-      features={MARKET_FEATURES}
-      followupOptions={FOLLOWUP_OPTIONS}
-      regionOptions={REGION_OPTIONS}
-      segmentOptions={SEGMENT_OPTIONS}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(structuredData),
+        }}
+      />
+      <MarketVoteClient
+        blockerOptions={BLOCKER_OPTIONS}
+        contactMethodOptions={CONTACT_METHOD_OPTIONS}
+        features={MARKET_FEATURES}
+        followupOptions={FOLLOWUP_OPTIONS}
+        regionOptions={REGION_OPTIONS}
+        segmentOptions={SEGMENT_OPTIONS}
+      />
+    </>
   );
 }

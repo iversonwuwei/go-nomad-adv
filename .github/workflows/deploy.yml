@@ -19,6 +19,7 @@ env:
   DEFAULT_CONTAINER_NAME: go-nomad-adv-app
   DEFAULT_APP_PORT: "6003"
   DEFAULT_DEPLOY_PATH: /opt/go-nomad-adv
+  DEFAULT_PUBLIC_BASE_URL: https://vote.go-nomads.com
   NEXT_TELEMETRY_DISABLED: "1"
 
 jobs:
@@ -69,6 +70,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Resolve deployment settings
         id: settings
         run: |
@@ -90,12 +96,15 @@ jobs:
           namespace="$DEFAULT_SWR_NAMESPACE"
           image_name="${SWR_IMAGE_NAME:-$DEFAULT_IMAGE_NAME}"
           image_repo="$registry/$namespace/$image_name"
+          public_base_url="$DEFAULT_PUBLIC_BASE_URL"
+          public_base_url="${public_base_url%/}"
 
           {
             echo "ssh_port=${ADV_DEPLOY_PORT:-22}"
             echo "deploy_path=${ADV_DEPLOY_PATH:-$DEFAULT_DEPLOY_PATH}"
             echo "app_port=${ADV_APP_PORT:-$DEFAULT_APP_PORT}"
             echo "container_name=${ADV_CONTAINER_NAME:-$DEFAULT_CONTAINER_NAME}"
+            echo "public_base_url=$public_base_url"
             echo "image_sha=$image_repo:$GITHUB_SHA"
             echo "image_latest=$image_repo:latest"
           } >> "$GITHUB_OUTPUT"
@@ -197,3 +206,24 @@ jobs:
           docker logs --tail=120 "$CONTAINER_NAME" || true
           exit 1
           REMOTE_SCRIPT
+
+      - name: Run live discovery check
+        run: |
+          set -euo pipefail
+          public_base_url="${{ steps.settings.outputs.public_base_url }}"
+
+          for attempt in $(seq 1 12); do
+            if ADV_DISCOVERY_BASE_URL="$public_base_url" \
+              ADV_DISCOVERY_EXPECTED_SITE_URL="$public_base_url" \
+              node scripts/discovery-check.mjs; then
+              exit 0
+            fi
+
+            if [ "$attempt" -eq 12 ]; then
+              echo "Live discovery check failed after ${attempt} attempts." >&2
+              exit 1
+            fi
+
+            echo "Live discovery check not ready yet; retrying (${attempt}/12)..." >&2
+            sleep 5
+          done

@@ -4,6 +4,7 @@ import { type FormEvent, useEffect, useMemo, useState } from "react";
 
 import type { FeatureStatus, MarketFeature, SelectOption } from "@/lib/market-data";
 import type { MarketSnapshot, MarketStats, VoteAggregate } from "@/lib/market-repository";
+import { FAQ_ITEMS, PRIMARY_ACTION_LINES, SEMANTIC_SUMMARY_CARDS, TARGET_AUDIENCE_LINES } from "@/lib/site";
 
 type MarketVoteClientProps = {
   features: MarketFeature[];
@@ -230,6 +231,8 @@ export function MarketVoteClient({
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,25rem)] lg:gap-8">
           <div className="min-w-0 space-y-7">
             <ServicePrinciples />
+            <SemanticSummarySection />
+            <FaqSection />
             <FeatureSection
               features={p0Features}
               selectedFeatureSet={selectedFeatureSet}
@@ -329,6 +332,75 @@ function ServicePrinciples() {
           <p className="mt-2 text-sm leading-6 text-muted">{principle.body}</p>
         </article>
       ))}
+    </section>
+  );
+}
+
+function SemanticSummarySection() {
+  return (
+    <section className="rounded-lg border bg-surface p-5 shadow-sm sm:p-6">
+      <div className="flex min-w-0 flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0">
+          <SectionHeading eyebrow="Overview" title="这页是什么，适合谁，以及提交后会发生什么" />
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">
+            这一段是给搜索引擎、AI 搜索和第一次访问的人看的直接说明：Go Nomad ADV 用真实服务兴趣来判断，哪些中国市场数字游民服务应该优先推出。
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-3 lg:grid-cols-3">
+        {SEMANTIC_SUMMARY_CARDS.map((card) => (
+          <article className="rounded-lg border bg-surface-soft p-4" key={card.title}>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-coral">{card.eyebrow}</p>
+            <h3 className="mt-2 text-base font-semibold leading-6 text-foreground">{card.title}</h3>
+            <p className="mt-2 text-sm leading-6 text-muted">{card.body}</p>
+          </article>
+        ))}
+      </div>
+
+      <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+        <article className="rounded-lg border bg-white p-4 shadow-inner">
+          <h3 className="text-sm font-semibold text-foreground">主要适合这些人</h3>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {TARGET_AUDIENCE_LINES.map((line) => (
+              <span className="rounded-full bg-surface-soft px-3 py-1.5 text-xs text-muted" key={line}>
+                {line}
+              </span>
+            ))}
+          </div>
+        </article>
+
+        <article className="rounded-lg border bg-white p-4 shadow-inner">
+          <h3 className="text-sm font-semibold text-foreground">你在这页可以做什么</h3>
+          <div className="mt-3 grid gap-2 text-sm leading-6 text-muted">
+            {PRIMARY_ACTION_LINES.map((line) => (
+              <p key={line}>{line}</p>
+            ))}
+          </div>
+        </article>
+      </div>
+    </section>
+  );
+}
+
+function FaqSection() {
+  return (
+    <section className="rounded-lg border bg-surface p-5 shadow-sm sm:p-6" id="faq">
+      <div className="min-w-0">
+        <SectionHeading eyebrow="FAQ" title="搜索和 AI 最常问的几个问题" />
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">
+          这些答案和页面里的结构化数据保持一致，用来直接说明这页是不是收费流程、谁适合看、以及提交兴趣后会发生什么。
+        </p>
+      </div>
+
+      <div className="mt-5 grid gap-3">
+        {FAQ_ITEMS.map((item) => (
+          <article className="rounded-lg border bg-white p-4 shadow-inner sm:p-5" key={item.question}>
+            <h3 className="text-base font-semibold leading-6 text-foreground">{item.question}</h3>
+            <p className="mt-2 text-sm leading-6 text-muted">{item.answer}</p>
+          </article>
+        ))}
+      </div>
     </section>
   );
 }
