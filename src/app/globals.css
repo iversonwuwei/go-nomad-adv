@@ -1,0 +1,93 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f3f7f1;
+  --foreground: #14211c;
+  --surface: #ffffff;
+  --surface-soft: #eef5ef;
+  --muted: #52645d;
+  --border: rgba(20, 33, 28, 0.12);
+  --brand-teal: #0f766e;
+  --brand-coral: #c7502f;
+  --brand-ink: #172033;
+  --brand-leaf: #2f7d45;
+  --brand-gold: #a26312;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-soft: var(--surface-soft);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-brand-teal: var(--brand-teal);
+  --color-brand-coral: var(--brand-coral);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-leaf: var(--brand-leaf);
+  --color-brand-gold: var(--brand-gold);
+  --font-sans: "Inter", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif;
+}
+
+html {
+  font-size: 15px;
+  -webkit-text-size-adjust: 100%;
+}
+
+@media (min-width: 768px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+body {
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  border-color: var(--border);
+}
+
+:where(button, input, textarea, select) {
+  font: inherit;
+}
+
+:where(h1, h2, h3) {
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+:where(p, li, label, span) {
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@supports (line-break: anywhere) {
+  :where(h1, h2, h3, p, li, label, span, button, a) {
+    line-break: anywhere;
+  }
+}
+
+:where(main, section, article, form, aside, div) {
+  min-width: 0;
+}
+
+.market-photo {
+  background-image:
+    linear-gradient(90deg, rgba(20, 33, 28, 0.86), rgba(20, 33, 28, 0.52)),
+    url("https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1600&q=80");
+  background-position: center;
+  background-size: cover;
+}
+
+.focus-ring:focus-visible {
+  outline: 3px solid rgba(15, 118, 110, 0.35);
+  outline-offset: 2px;
+}
