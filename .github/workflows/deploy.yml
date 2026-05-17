@@ -1,0 +1,187 @@
+name: Deploy Go Nomad ADV
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: go-nomad-adv-production
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DEFAULT_IMAGE_NAME: go-nomad-adv
+  DEFAULT_SWR_NAMESPACE: go-nomads-v2
+  DEFAULT_CONTAINER_NAME: go-nomad-adv-app
+  DEFAULT_APP_PORT: "6003"
+  DEFAULT_DEPLOY_PATH: /opt/go-nomad-adv
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: Install dependencies
+        run: |
+          corepack enable
+          yarn install --frozen-lockfile
+
+      - name: Lint
+        run: yarn lint
+
+      - name: Build
+        run: yarn build
+
+  deploy:
+    name: Build, push to SWR, and deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    needs: validate
+    env:
+      SWR_REGISTRY: ${{ secrets[format('{0}', 'SWR_REGISTRY')] }}
+      SWR_USERNAME: ${{ secrets[format('{0}', 'SWR_USERNAME')] }}
+      SWR_PASSWORD: ${{ secrets[format('{0}', 'SWR_PASSWORD')] }}
+      ADV_DEPLOY_HOST: ${{ secrets[format('{0}', 'ADV_DEPLOY_HOST')] }}
+      ADV_DEPLOY_USER: ${{ secrets[format('{0}', 'ADV_DEPLOY_USER')] }}
+      ADV_DEPLOY_SSH_KEY: ${{ secrets[format('{0}', 'ADV_DEPLOY_SSH_KEY')] }}
+      ADV_DEPLOY_PORT: ${{ secrets[format('{0}', 'ADV_DEPLOY_PORT')] }}
+      ADV_ENV_FILE: ${{ secrets[format('{0}', 'ADV_ENV_FILE')] }}
+      ADV_DEPLOY_PATH: ${{ vars[format('{0}', 'ADV_DEPLOY_PATH')] }}
+      ADV_APP_PORT: ${{ vars[format('{0}', 'ADV_APP_PORT')] }}
+      ADV_CONTAINER_NAME: ${{ vars[format('{0}', 'ADV_CONTAINER_NAME')] }}
+      SWR_IMAGE_NAME: ${{ vars[format('{0}', 'SWR_IMAGE_NAME')] }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve deployment settings
+        id: settings
+        run: |
+          set -euo pipefail
+
+          missing=0
+          for name in SWR_REGISTRY SWR_USERNAME SWR_PASSWORD ADV_DEPLOY_HOST ADV_DEPLOY_USER ADV_DEPLOY_SSH_KEY ADV_ENV_FILE; do
+            if [ -z "${!name}" ]; then
+              echo "Required GitHub secret $name is not configured." >&2
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+          registry="${SWR_REGISTRY%/}"
+          namespace="$DEFAULT_SWR_NAMESPACE"
+          image_name="${SWR_IMAGE_NAME:-$DEFAULT_IMAGE_NAME}"
+          image_repo="$registry/$namespace/$image_name"
+
+          {
+            echo "ssh_port=${ADV_DEPLOY_PORT:-22}"
+            echo "deploy_path=${ADV_DEPLOY_PATH:-$DEFAULT_DEPLOY_PATH}"
+            echo "app_port=${ADV_APP_PORT:-$DEFAULT_APP_PORT}"
+            echo "container_name=${ADV_CONTAINER_NAME:-$DEFAULT_CONTAINER_NAME}"
+            echo "image_sha=$image_repo:$GITHUB_SHA"
+            echo "image_latest=$image_repo:latest"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Login to SWR
+        run: |
+          printf '%s' "$SWR_PASSWORD" | docker login "$SWR_REGISTRY" -u "$SWR_USERNAME" --password-stdin
+
+      - name: Build Docker image
+        run: |
+          docker build --pull \
+            -t "${{ steps.settings.outputs.image_sha }}" \
+            -t "${{ steps.settings.outputs.image_latest }}" \
+            .
+
+      - name: Push Docker image to SWR
+        run: |
+          docker push "${{ steps.settings.outputs.image_sha }}"
+          docker push "${{ steps.settings.outputs.image_latest }}"
+
+      - name: Configure SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$ADV_DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -p "${{ steps.settings.outputs.ssh_port }}" "$ADV_DEPLOY_HOST" >> ~/.ssh/known_hosts
+
+      - name: Copy environment file to server
+        run: |
+          set -euo pipefail
+          deploy_path="${{ steps.settings.outputs.deploy_path }}"
+          ssh_port="${{ steps.settings.outputs.ssh_port }}"
+          remote="$ADV_DEPLOY_USER@$ADV_DEPLOY_HOST"
+
+          umask 077
+          printf '%s\n' "$ADV_ENV_FILE" > .env.production
+
+          ssh -i ~/.ssh/id_ed25519 -p "$ssh_port" "$remote" \
+            "mkdir -p '$deploy_path/data' && chmod 700 '$deploy_path' '$deploy_path/data'"
+          scp -i ~/.ssh/id_ed25519 -P "$ssh_port" .env.production "$remote:$deploy_path/.env"
+          ssh -i ~/.ssh/id_ed25519 -p "$ssh_port" "$remote" \
+            "chmod 600 '$deploy_path/.env'"
+
+      - name: Deploy Docker container on server
+        run: |
+          set -euo pipefail
+          deploy_path="${{ steps.settings.outputs.deploy_path }}"
+          ssh_port="${{ steps.settings.outputs.ssh_port }}"
+          app_port="${{ steps.settings.outputs.app_port }}"
+          container_name="${{ steps.settings.outputs.container_name }}"
+          image_uri="${{ steps.settings.outputs.image_sha }}"
+          remote="$ADV_DEPLOY_USER@$ADV_DEPLOY_HOST"
+
+          printf '%s' "$SWR_PASSWORD" | ssh -i ~/.ssh/id_ed25519 -p "$ssh_port" "$remote" \
+            "docker login '$SWR_REGISTRY' -u '$SWR_USERNAME' --password-stdin"
+
+          ssh -i ~/.ssh/id_ed25519 -p "$ssh_port" "$remote" \
+            "DEPLOY_PATH='$deploy_path' APP_PORT='$app_port' CONTAINER_NAME='$container_name' IMAGE_URI='$image_uri' bash -s" <<'REMOTE_SCRIPT'
+          set -euo pipefail
+
+          mkdir -p "$DEPLOY_PATH/data"
+          docker pull "$IMAGE_URI"
+          docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
+          docker run -d \
+            --name "$CONTAINER_NAME" \
+            --restart unless-stopped \
+            -p "${APP_PORT}:6003" \
+            --env-file "$DEPLOY_PATH/.env" \
+            -e NODE_ENV=production \
+            -e PORT=6003 \
+            -e HOSTNAME=0.0.0.0 \
+            -e GO_NOMAD_ADV_DB_PATH=/app/.data/go-nomad-adv.sqlite \
+            -v "$DEPLOY_PATH/data:/app/.data" \
+            "$IMAGE_URI"
+
+          for _ in $(seq 1 30); do
+            health_status=$(docker inspect -f '{{.State.Health.Status}}' "$CONTAINER_NAME" 2>/dev/null || true)
+            if [ "$health_status" = "healthy" ]; then
+              docker image prune -f >/dev/null 2>&1 || true
+              echo "Go Nomad ADV deployed on port ${APP_PORT}."
+              exit 0
+            fi
+            sleep 2
+          done
+
+          docker logs --tail=120 "$CONTAINER_NAME" || true
+          exit 1
+          REMOTE_SCRIPT

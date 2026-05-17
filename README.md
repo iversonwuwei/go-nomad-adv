@@ -28,6 +28,41 @@ yarn build
 ADV_BASE_URL=http://localhost:6003 yarn probe
 ```
 
+## Docker
+
+```bash
+docker build -t go-nomad-adv:local .
+docker run --rm -p 6003:6003 -v "$PWD/.data:/app/.data" go-nomad-adv:local
+```
+
+The container stores SQLite data at `/app/.data/go-nomad-adv.sqlite`.
+
+## GitHub Actions deployment
+
+The workflow at `.github/workflows/deploy.yml` validates the app, builds a Docker image in GitHub Actions, pushes the image to SWR, copies the production environment file to the server, and restarts the Docker container from the SWR image.
+
+Configure these repository secrets before deploying:
+
+- `SWR_REGISTRY`: SWR registry host, for example `swr.cn-north-4.myhuaweicloud.com`
+- `SWR_USERNAME`: SWR login username
+- `SWR_PASSWORD`: SWR login password or access token
+- `ADV_DEPLOY_HOST`: server host or IP
+- `ADV_DEPLOY_USER`: SSH user on the server
+- `ADV_DEPLOY_SSH_KEY`: private SSH key that can log in to the server
+- `ADV_ENV_FILE`: full contents of the production `.env` file to copy to the server
+- `ADV_DEPLOY_PORT`: optional SSH port, defaults to `22`
+
+Optional repository variables:
+
+- `SWR_IMAGE_NAME`: SWR image name, defaults to `go-nomad-adv`
+- `ADV_DEPLOY_PATH`: server directory for `.env` and SQLite data, defaults to `/opt/go-nomad-adv`
+- `ADV_APP_PORT`: host port exposed by the container, defaults to `6003`
+- `ADV_CONTAINER_NAME`: Docker container name, defaults to `go-nomad-adv-app`
+
+The server must have Docker installed and the SSH user must be able to run Docker commands. Push to `main` or run the workflow manually from GitHub Actions to deploy.
+
+The SWR namespace is fixed to `go-nomads-v2` in the workflow.
+
 ## Data
 
 The default SQLite database path is:

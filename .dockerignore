@@ -1,0 +1,14 @@
+.DS_Store
+.git
+.github
+.next
+.data
+node_modules
+coverage
+*.log
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+.env
+.env.*
+!.env.example
