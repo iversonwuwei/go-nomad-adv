@@ -58,6 +58,7 @@ export type RecentSignal = {
 };
 
 export type MarketStats = {
+  pageViewCount: number;
   totalSubmissions: number;
   contactableSubmissions: number;
   topFeatureId: string | null;
@@ -167,6 +168,14 @@ function topKey(aggregates: Record<string, number>) {
 
 export function getMarketStats(): MarketStats {
   const database = getDatabase();
+  const pageViewRow = database
+    .prepare(
+      `SELECT COUNT(*) AS count
+       FROM access_logs
+       WHERE request_path = '/'
+         AND request_method = 'GET'`,
+    )
+    .get();
   const submissionRow = database.prepare("SELECT COUNT(*) AS count FROM survey_submissions").get();
   const contactableRow = database
     .prepare(
@@ -262,6 +271,7 @@ export function getMarketStats(): MarketStats {
   const followupsByPreference = aggregateCount(followupRows, "preference");
 
   return {
+    pageViewCount: numberFromRow(pageViewRow, "count"),
     totalSubmissions: numberFromRow(submissionRow, "count"),
     contactableSubmissions: numberFromRow(contactableRow, "count"),
     topFeatureId: topKnownFeature?.feature.id ?? null,

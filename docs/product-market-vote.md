@@ -54,7 +54,9 @@ All submissions are persisted to a local SQLite database in the app runtime data
 - audience fields limited to segment, target region, and main blocker
 - optional contact method, contact value, note, consent, and follow-up preference
 - aggregate interest and audience counts visible after load and after submission
+- homepage should surface total page views from the local access-log workflow so operators can compare traffic volume with expressed interest volume
 - server-side input checks with no dependency on existing API services
+- best-effort access logging for homepage and market-vote API requests, storing request path, method, request time, normalized client IP, and selected request headers in local SQLite
 - branded browser icon and app manifest so the site no longer falls back to the browser default icon
 - crawlable metadata including canonical URL, Open Graph, Twitter card, robots policy, and sitemap output
 - AI-search-readable structured summaries so search agents can identify the product as a China-market digital nomad service research and onboarding page
@@ -71,6 +73,7 @@ All submissions are persisted to a local SQLite database in the app runtime data
 - identity login or account creation
 - lead deduplication across existing Go Nomad backend tables
 - CRM export or admin dashboard
+- third-party analytics, cross-site tracking, or a full access-log review UI
 - legal, tax, immigration, or employment advice delivery
 - booking, scheduling, or claiming that a service request has been accepted
 
@@ -94,6 +97,7 @@ All submissions are persisted to a local SQLite database in the app runtime data
 - The SQLite file is local runtime state under `.data/` and can be deleted to reset the data.
 - Docker production deployments must provide a writable `/app/.data` mount for the app user because the public snapshot endpoint initializes SQLite during the health gate.
 - Rollback is removing the `go-nomad-adv` route/process or hiding links to it; collected SQLite data can be archived separately.
+- Access logging must stay additive and best-effort; rollback is removing the logging calls or dropping the access-log table without changing market-vote persistence behavior.
 - SEO and AI-search changes must remain additive at the document shell level only; rollback is removing metadata routes, manifest output, JSON-LD blocks, and branded icons without touching form persistence.
 - Share preview and semantic summary changes must stay additive to the page shell and copy layer only; rollback is removing preview image routes and summary blocks without changing data collection behavior.
 - FAQ changes must remain additive to copy and structured data only; rollback is removing the FAQ block and FAQPage schema without affecting service selection or submission persistence.

@@ -22,6 +22,7 @@ type SubmitResponse = {
 };
 
 const emptyStats: MarketStats = {
+  pageViewCount: 0,
   totalSubmissions: 0,
   contactableSubmissions: 0,
   topFeatureId: null,
@@ -218,6 +219,7 @@ export function MarketVoteClient({
           </div>
 
           <div className="grid gap-3 self-end rounded-lg border border-white/18 bg-white/12 p-4 backdrop-blur">
+            <MetricRow label="浏览量" value={String(stats.pageViewCount)} />
             <MetricRow label="已表达兴趣" value={String(stats.totalSubmissions)} />
             <MetricRow label="愿意联系" value={String(stats.contactableSubmissions)} />
             <MetricRow label="最多人想了解" value={topFeature?.title ?? "等待第一条兴趣"} />

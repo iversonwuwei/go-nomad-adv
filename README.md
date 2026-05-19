@@ -123,4 +123,6 @@ Override it with:
 GO_NOMAD_ADV_DB_PATH=/absolute/path/to/go-nomad-adv.sqlite yarn dev
 ```
 
-Delete the SQLite file to reset local voting data.
+The same SQLite file stores both market-vote data and additive access logs for the homepage plus `/api/market-vote/*` requests. Access logs keep request path, method, request time, normalized IP, and selected headers only; request bodies are not stored.
+
+Delete the SQLite file to reset local voting data and access logs.

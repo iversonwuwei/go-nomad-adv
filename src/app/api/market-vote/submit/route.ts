@@ -1,11 +1,18 @@
 import { NextResponse } from "next/server";
 
+import { safeRecordAccessLog } from "@/lib/access-log";
 import { MarketInputError, createMarketSubmission, type MarketSubmissionInput } from "@/lib/market-repository";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  safeRecordAccessLog({
+    requestPath: new URL(request.url).pathname,
+    requestMethod: request.method,
+    headers: request.headers,
+  });
+
   let payload: MarketSubmissionInput;
 
   try {

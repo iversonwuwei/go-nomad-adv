@@ -17,6 +17,7 @@ The page should feel simpler than a research survey. The visitor should understa
 ## Information Architecture
 
 1. Service promise band
+   - total homepage page views
    - total interest submissions
    - contactable submissions
    - most requested service
@@ -57,6 +58,7 @@ The page should feel simpler than a research survey. The visitor should understa
 - Contact fields are optional and must not block interest persistence.
 - The follow-up preference is a research signal, not a scheduling workflow.
 - After submit, the page refreshes aggregate signals and shows the saved submission id.
+- Access logging is best-effort only; if log persistence fails, page render and market-vote API behavior must continue and the failure should stay in server logs only.
 - Search optimization must not depend on client-side interaction; the essential page summary, service stages, and brand identity need to exist in server-rendered metadata.
 - AI search optimization must expose stable entity hints through structured data and concise explanatory copy, not hidden keyword stuffing.
 - The page body should contain a short visible summary block with direct answers to likely search and AI questions, instead of relying only on `<head>` metadata.
@@ -85,6 +87,8 @@ The page should feel simpler than a research survey. The visitor should understa
 - Server route handlers initialize the SQLite schema lazily on first access.
 - Docker runtime stores SQLite under `/app/.data`; the mounted directory must be writable by the non-root app user before health checks run.
 - The UI talks only to local API routes under `/api/market-vote/*`.
+- Homepage SSR requests and `/api/market-vote/*` requests should write an additive access-log row into the same SQLite database with request path, method, normalized IP, selected headers, and a database timestamp.
+- Static assets, discovery routes, and request bodies stay out of the access-log scope for this MVP to avoid noisy storage and accidental persistence of user-provided payloads.
 - No secrets are required for local development.
 - Brand icon assets should be served from the app shell and must not alter any persistence or API behavior.
 - SEO routes such as robots, sitemap, and manifest must be generated inside the Next.js app layer and remain deploy-safe with or without an explicit site URL environment variable.
@@ -96,6 +100,8 @@ The page should feel simpler than a research survey. The visitor should understa
 - TypeScript and production build must pass with `yarn build` or the root `build:adv` script.
 - Lint must pass with `yarn lint` or the root `lint:adv` script.
 - The probe check must confirm that the SQLite-backed submit endpoint records service interest and returns updated aggregate data.
+- A request to the homepage or market-vote API must append an access-log row containing request path, method, IP, and selected header fields without changing the user-facing response contract.
+- The homepage summary band must show a browser-visible page-view count derived from logged `GET /` requests.
 - Production deployment must verify the SQLite data mount is writable before the container is expected to become healthy.
 - The built page head must emit canonical, robots, Open Graph, and icon metadata.
 - The app must expose a sitemap, robots route, and web manifest.

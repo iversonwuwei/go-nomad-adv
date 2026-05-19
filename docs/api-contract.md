@@ -41,6 +41,35 @@ The schema is initialized by the application on first request. The application c
 - `is_priority`
 - `created_at`
 
+### `access_logs`
+
+- `id`
+- `request_path`
+- `request_method`
+- `ip_address`
+- `user_agent`
+- `referer`
+- `accept_language`
+- `forwarded_for`
+- `header_snapshot`
+- `created_at`
+
+## Access Logging Workflow
+
+The application records access logs for these request surfaces:
+
+- `GET /`
+- `GET /api/market-vote/snapshot`
+- `POST /api/market-vote/submit`
+
+Access-log rules:
+
+- logging is best-effort and must not change the primary response on write failure
+- request time is taken from the SQLite `created_at` timestamp
+- `ip_address` is normalized from proxy headers when available, preferring the first `x-forwarded-for` value and then `x-real-ip` or `cf-connecting-ip`
+- `header_snapshot` stores a JSON object of selected infrastructure headers so deploy-level request context can be inspected later without storing the full raw request
+- request bodies, cookies, and authorization material are out of scope for this workflow
+
 ## `GET /api/market-vote/snapshot`
 
 Returns service definitions plus aggregate market signals.
@@ -51,6 +80,7 @@ Response shape:
 {
   "features": [],
   "stats": {
+    "pageViewCount": 0,
     "totalSubmissions": 0,
     "contactableSubmissions": 0,
     "topFeatureId": null,
@@ -65,6 +95,10 @@ Response shape:
   }
 }
 ```
+
+Field notes:
+
+- `pageViewCount` is the cumulative count of logged `GET /` homepage requests.
 
 ## `POST /api/market-vote/submit`
 
@@ -115,4 +149,5 @@ Response shape:
 
 - Contact data is optional and stored locally only.
 - Aggregate snapshot responses do not expose contact values.
+- Access logging stores only selected request metadata; it does not persist request bodies or session cookies.
 - This MVP does not implement deletion or export workflows; if this voting workflow is used beyond local demand evaluation, those controls should be added before public launch.

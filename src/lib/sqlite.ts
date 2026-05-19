@@ -67,18 +67,41 @@ function initializeSchema(activeDatabase: DatabaseSync) {
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS access_logs (
+      id TEXT PRIMARY KEY,
+      request_path TEXT NOT NULL,
+      request_method TEXT NOT NULL,
+      ip_address TEXT NOT NULL DEFAULT '',
+      user_agent TEXT NOT NULL DEFAULT '',
+      referer TEXT NOT NULL DEFAULT '',
+      accept_language TEXT NOT NULL DEFAULT '',
+      forwarded_for TEXT NOT NULL DEFAULT '',
+      header_snapshot TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE INDEX IF NOT EXISTS idx_feature_votes_feature ON feature_votes(feature_id);
     CREATE INDEX IF NOT EXISTS idx_feature_votes_submission ON feature_votes(submission_id);
     CREATE INDEX IF NOT EXISTS idx_survey_submissions_segment ON survey_submissions(segment);
     CREATE INDEX IF NOT EXISTS idx_survey_submissions_blocker ON survey_submissions(biggest_blocker);
     CREATE INDEX IF NOT EXISTS idx_survey_submissions_target_region ON survey_submissions(target_region);
     CREATE INDEX IF NOT EXISTS idx_survey_submissions_created_at ON survey_submissions(created_at);
+    CREATE INDEX IF NOT EXISTS idx_access_logs_created_at ON access_logs(created_at);
+    CREATE INDEX IF NOT EXISTS idx_access_logs_request_path ON access_logs(request_path);
+    CREATE INDEX IF NOT EXISTS idx_access_logs_ip_address ON access_logs(ip_address);
   `);
 
   ensureColumn(activeDatabase, "survey_submissions", "target_region", "TEXT NOT NULL DEFAULT 'undecided'");
   ensureColumn(activeDatabase, "survey_submissions", "biggest_blocker", "TEXT NOT NULL DEFAULT 'not_sure'");
   ensureColumn(activeDatabase, "survey_submissions", "followup_preference", "TEXT NOT NULL DEFAULT 'no_followup'");
   ensureColumn(activeDatabase, "survey_submissions", "followup_note", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(activeDatabase, "access_logs", "ip_address", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(activeDatabase, "access_logs", "user_agent", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(activeDatabase, "access_logs", "referer", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(activeDatabase, "access_logs", "accept_language", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(activeDatabase, "access_logs", "forwarded_for", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(activeDatabase, "access_logs", "header_snapshot", "TEXT NOT NULL DEFAULT '{}'"
+  );
 }
 
 function ensureColumn(activeDatabase: DatabaseSync, tableName: string, columnName: string, definition: string) {
