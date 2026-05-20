@@ -10,11 +10,14 @@ SQLite database path:
 
 The schema is initialized by the application on first request. The application creates the parent directory when possible, but the runtime directory must already be writable by the app process; otherwise SQLite returns `unable to open database file` and the snapshot health check fails.
 
+Current public-page behavior writes the overall interest decision into `interest_decision` and leaves the older profile/contact columns on safe defaults. Those legacy columns remain in the table so historical rows continue to read correctly.
+
 ## Tables
 
 ### `survey_submissions`
 
 - `id`
+- `interest_decision`
 - `segment`
 - `city`
 - `work_mode`
@@ -82,16 +85,9 @@ Response shape:
   "stats": {
     "pageViewCount": 0,
     "totalSubmissions": 0,
-    "contactableSubmissions": 0,
-    "topFeatureId": null,
-    "primarySegment": null,
-    "topBlocker": null,
-    "votesByFeature": {},
-    "segmentsByAudience": {},
-    "blockersByIssue": {},
-    "regionsByInterest": {},
-    "followupsByPreference": {},
-    "recentSignals": []
+    "interestedSubmissions": 0,
+    "notInterestedSubmissions": 0,
+    "interestRate": 0
   }
 }
 ```
@@ -99,6 +95,8 @@ Response shape:
 Field notes:
 
 - `pageViewCount` is the cumulative count of logged `GET /` homepage requests.
+- `interestRate` is the interested-response share as a decimal between `0` and `1`.
+- The snapshot may still include additional legacy aggregate keys for backward compatibility, but the public page depends on the overall response counters above.
 
 ## `POST /api/market-vote/submit`
 
@@ -106,48 +104,30 @@ Request shape:
 
 ```json
 {
-  "selectedFeatureIds": ["p0-readiness-destination-check"],
-  "profile": {
-    "segment": "remote_employee",
-    "city": "",
-    "workMode": "not_remote_yet",
-    "decisionTimeline": "researching",
-    "budgetLevel": "free_research",
-    "targetRegion": "southeast_asia",
-    "biggestBlocker": "employer_permission",
-    "followupPreference": "receive_result"
-  },
-  "contact": {
-    "name": "optional",
-    "method": "wechat",
-    "value": "optional",
-    "consentToContact": true,
-    "note": "optional"
-  }
+  "interestDecision": "interested"
 }
 ```
 
 Input rules:
 
-- `selectedFeatureIds` must include at least one known service id.
-- unknown service ids are rejected.
-- option fields fall back to safe defaults when omitted or unknown.
-- free-text fields are trimmed and length-limited server-side.
-- contact fields are optional.
+- `interestDecision` is required.
+- allowed values are `interested` and `not_interested`.
+- the current public page does not require profile, contact, or service-level selection fields.
+- the server may still accept legacy feature-selection payloads as `interested` submissions during the transition period.
 
 Response shape:
 
 ```json
 {
   "submissionId": "sub_...",
-  "recordedVotes": 1,
+  "interestDecision": "interested",
   "stats": {}
 }
 ```
 
 ## Privacy Notes
 
-- Contact data is optional and stored locally only.
-- Aggregate snapshot responses do not expose contact values.
+- The current public interaction does not ask for contact data.
+- Aggregate snapshot responses expose only counts and never expose personal contact values.
 - Access logging stores only selected request metadata; it does not persist request bodies or session cookies.
 - This MVP does not implement deletion or export workflows; if this voting workflow is used beyond local demand evaluation, those controls should be added before public launch.

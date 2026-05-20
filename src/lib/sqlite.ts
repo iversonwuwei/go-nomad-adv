@@ -40,6 +40,7 @@ function initializeSchema(activeDatabase: DatabaseSync) {
 
     CREATE TABLE IF NOT EXISTS survey_submissions (
       id TEXT PRIMARY KEY,
+      interest_decision TEXT NOT NULL DEFAULT 'interested',
       segment TEXT NOT NULL,
       city TEXT NOT NULL,
       work_mode TEXT NOT NULL,
@@ -83,24 +84,29 @@ function initializeSchema(activeDatabase: DatabaseSync) {
     CREATE INDEX IF NOT EXISTS idx_feature_votes_feature ON feature_votes(feature_id);
     CREATE INDEX IF NOT EXISTS idx_feature_votes_submission ON feature_votes(submission_id);
     CREATE INDEX IF NOT EXISTS idx_survey_submissions_segment ON survey_submissions(segment);
-    CREATE INDEX IF NOT EXISTS idx_survey_submissions_blocker ON survey_submissions(biggest_blocker);
-    CREATE INDEX IF NOT EXISTS idx_survey_submissions_target_region ON survey_submissions(target_region);
     CREATE INDEX IF NOT EXISTS idx_survey_submissions_created_at ON survey_submissions(created_at);
     CREATE INDEX IF NOT EXISTS idx_access_logs_created_at ON access_logs(created_at);
     CREATE INDEX IF NOT EXISTS idx_access_logs_request_path ON access_logs(request_path);
-    CREATE INDEX IF NOT EXISTS idx_access_logs_ip_address ON access_logs(ip_address);
   `);
 
   ensureColumn(activeDatabase, "survey_submissions", "target_region", "TEXT NOT NULL DEFAULT 'undecided'");
   ensureColumn(activeDatabase, "survey_submissions", "biggest_blocker", "TEXT NOT NULL DEFAULT 'not_sure'");
   ensureColumn(activeDatabase, "survey_submissions", "followup_preference", "TEXT NOT NULL DEFAULT 'no_followup'");
   ensureColumn(activeDatabase, "survey_submissions", "followup_note", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(activeDatabase, "survey_submissions", "interest_decision", "TEXT NOT NULL DEFAULT 'interested'");
   ensureColumn(activeDatabase, "access_logs", "ip_address", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(activeDatabase, "access_logs", "user_agent", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(activeDatabase, "access_logs", "referer", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(activeDatabase, "access_logs", "accept_language", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(activeDatabase, "access_logs", "forwarded_for", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(activeDatabase, "access_logs", "header_snapshot", "TEXT NOT NULL DEFAULT '{}'"
+  );
+
+  activeDatabase.exec(
+    `CREATE INDEX IF NOT EXISTS idx_survey_submissions_blocker ON survey_submissions(biggest_blocker);
+     CREATE INDEX IF NOT EXISTS idx_survey_submissions_target_region ON survey_submissions(target_region);
+     CREATE INDEX IF NOT EXISTS idx_survey_submissions_interest_decision ON survey_submissions(interest_decision);
+     CREATE INDEX IF NOT EXISTS idx_access_logs_ip_address ON access_logs(ip_address);`,
   );
 }
 

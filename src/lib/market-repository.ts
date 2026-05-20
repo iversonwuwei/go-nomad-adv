@@ -36,7 +36,10 @@ type SubmitContact = {
   note?: unknown;
 };
 
+export type InterestDecision = "interested" | "not_interested";
+
 export type MarketSubmissionInput = {
+  interestDecision?: unknown;
   selectedFeatureIds?: unknown;
   priorityFeatureId?: unknown;
   profile?: SubmitProfile;
@@ -60,6 +63,9 @@ export type RecentSignal = {
 export type MarketStats = {
   pageViewCount: number;
   totalSubmissions: number;
+  interestedSubmissions: number;
+  notInterestedSubmissions: number;
+  interestRate: number;
   contactableSubmissions: number;
   topFeatureId: string | null;
   primarySegment: string | null;
@@ -79,6 +85,7 @@ export type MarketSnapshot = {
 
 export type SubmitResult = {
   submissionId: string;
+  interestDecision: InterestDecision;
   recordedVotes: number;
   stats: MarketStats;
 };
@@ -133,9 +140,13 @@ function stringFromRow(row: Record<string, unknown>, key: string) {
   return typeof value === "string" ? value : String(value ?? "");
 }
 
-function uniqueSelectedFeatures(value: unknown) {
+function optionalSelectedFeatures(value: unknown) {
+  if (value == null) {
+    return [];
+  }
+
   if (!Array.isArray(value)) {
-    throw new MarketInputError("Select at least one feature to vote for");
+    throw new MarketInputError("selectedFeatureIds must be an array when provided");
   }
 
   const featureIds = value
@@ -143,16 +154,26 @@ function uniqueSelectedFeatures(value: unknown) {
     .filter(Boolean);
   const uniqueFeatureIds = Array.from(new Set(featureIds));
 
-  if (uniqueFeatureIds.length === 0) {
-    throw new MarketInputError("Select at least one feature to vote for");
-  }
-
   const unknownFeatureId = uniqueFeatureIds.find((featureId) => !getFeatureById(featureId));
   if (unknownFeatureId) {
     throw new MarketInputError(`Unknown feature id: ${unknownFeatureId}`);
   }
 
   return uniqueFeatureIds;
+}
+
+function normalizeInterestDecision(value: unknown, selectedFeatureIds: string[]): InterestDecision {
+  const normalizedValue = trimText(value, 40);
+
+  if (normalizedValue === "interested" || normalizedValue === "not_interested") {
+    return normalizedValue;
+  }
+
+  if (selectedFeatureIds.length > 0) {
+    return "interested";
+  }
+
+  throw new MarketInputError("Select interested or not interested");
 }
 
 function aggregateCount(rows: Record<string, unknown>[], keyName: string) {
@@ -177,6 +198,20 @@ export function getMarketStats(): MarketStats {
     )
     .get();
   const submissionRow = database.prepare("SELECT COUNT(*) AS count FROM survey_submissions").get();
+  const interestedRow = database
+    .prepare(
+      `SELECT COUNT(*) AS count
+       FROM survey_submissions
+       WHERE interest_decision = 'interested'`,
+    )
+    .get();
+  const notInterestedRow = database
+    .prepare(
+      `SELECT COUNT(*) AS count
+       FROM survey_submissions
+       WHERE interest_decision = 'not_interested'`,
+    )
+    .get();
   const contactableRow = database
     .prepare(
       `SELECT COUNT(*) AS count
@@ -269,10 +304,16 @@ export function getMarketStats(): MarketStats {
   const blockersByIssue = aggregateCount(blockerRows, "blocker");
   const regionsByInterest = aggregateCount(regionRows, "region");
   const followupsByPreference = aggregateCount(followupRows, "preference");
+  const totalSubmissions = numberFromRow(submissionRow, "count");
+  const interestedSubmissions = numberFromRow(interestedRow, "count");
+  const notInterestedSubmissions = numberFromRow(notInterestedRow, "count");
 
   return {
     pageViewCount: numberFromRow(pageViewRow, "count"),
-    totalSubmissions: numberFromRow(submissionRow, "count"),
+    totalSubmissions,
+    interestedSubmissions,
+    notInterestedSubmissions,
+    interestRate: totalSubmissions === 0 ? 0 : interestedSubmissions / totalSubmissions,
     contactableSubmissions: numberFromRow(contactableRow, "count"),
     topFeatureId: topKnownFeature?.feature.id ?? null,
     primarySegment: topKey(segmentsByAudience),
@@ -300,7 +341,13 @@ export function getMarketSnapshot(): MarketSnapshot {
 }
 
 export function createMarketSubmission(input: MarketSubmissionInput): SubmitResult {
-  const selectedFeatureIds = uniqueSelectedFeatures(input.selectedFeatureIds);
+  const selectedFeatureIds = optionalSelectedFeatures(input.selectedFeatureIds);
+  const interestDecision = normalizeInterestDecision(input.interestDecision, selectedFeatureIds);
+
+  if (interestDecision === "not_interested" && selectedFeatureIds.length > 0) {
+    throw new MarketInputError("Do not send selected features with a not_interested decision");
+  }
+
   const priorityFeatureId = trimText(input.priorityFeatureId, 120);
   const normalizedPriorityFeatureId = selectedFeatureIds.includes(priorityFeatureId) ? priorityFeatureId : "";
   const profile = input.profile ?? {};
@@ -314,6 +361,7 @@ export function createMarketSubmission(input: MarketSubmissionInput): SubmitResu
       .prepare(
         `INSERT INTO survey_submissions (
           id,
+          interest_decision,
           segment,
           city,
           work_mode,
@@ -327,10 +375,11 @@ export function createMarketSubmission(input: MarketSubmissionInput): SubmitResu
           contact_method,
           contact_value,
           consent_to_contact
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         submissionId,
+        interestDecision,
         optionOrFallback(SEGMENT_OPTIONS, profile.segment, "early_explorer"),
         trimText(profile.city, 80),
         optionOrFallback(WORK_MODE_OPTIONS, profile.workMode, "not_remote_yet"),
@@ -346,34 +395,36 @@ export function createMarketSubmission(input: MarketSubmissionInput): SubmitResu
         contact.consentToContact === true ? 1 : 0,
       );
 
-    const insertVote = database.prepare(
-      `INSERT INTO feature_votes (
-        id,
-        submission_id,
-        feature_id,
-        feature_status,
-        feature_title,
-        vote_weight,
-        is_priority
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    );
-
-    for (const featureId of selectedFeatureIds) {
-      const feature = getFeatureById(featureId);
-      if (!feature) {
-        throw new MarketInputError(`Unknown feature id: ${featureId}`);
-      }
-
-      const isPriority = feature.id === normalizedPriorityFeatureId;
-      insertVote.run(
-        createId("vote"),
-        submissionId,
-        feature.id,
-        feature.status,
-        feature.title,
-        isPriority ? 3 : 1,
-        isPriority ? 1 : 0,
+    if (selectedFeatureIds.length > 0) {
+      const insertVote = database.prepare(
+        `INSERT INTO feature_votes (
+          id,
+          submission_id,
+          feature_id,
+          feature_status,
+          feature_title,
+          vote_weight,
+          is_priority
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
       );
+
+      for (const featureId of selectedFeatureIds) {
+        const feature = getFeatureById(featureId);
+        if (!feature) {
+          throw new MarketInputError(`Unknown feature id: ${featureId}`);
+        }
+
+        const isPriority = feature.id === normalizedPriorityFeatureId;
+        insertVote.run(
+          createId("vote"),
+          submissionId,
+          feature.id,
+          feature.status,
+          feature.title,
+          isPriority ? 3 : 1,
+          isPriority ? 1 : 0,
+        );
+      }
     }
 
     database.exec("COMMIT");
@@ -384,7 +435,8 @@ export function createMarketSubmission(input: MarketSubmissionInput): SubmitResu
 
   return {
     submissionId,
-    recordedVotes: selectedFeatureIds.length,
+    interestDecision,
+    recordedVotes: selectedFeatureIds.length > 0 ? selectedFeatureIds.length : 1,
     stats: getMarketStats(),
   };
 }

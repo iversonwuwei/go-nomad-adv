@@ -22,34 +22,52 @@ if (!Array.isArray(snapshot.features) || snapshot.features.length < 6) {
   throw new Error("snapshot did not return feature definitions");
 }
 
-const result = await requestJson("/api/market-vote/submit", {
+const beforeStats = snapshot.stats ?? {};
+
+const interestedResult = await requestJson("/api/market-vote/submit", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
-    selectedFeatureIds: ["p0-readiness-destination-check", "p0-stay-tax-risk-check"],
-    priorityFeatureId: "p0-readiness-destination-check",
-    profile: {
-      segment: "remote_employee",
-      city: "probe-run",
-      workMode: "remote_in_china",
-      decisionTimeline: "90_days",
-      budgetLevel: "small_paid_report",
-      targetRegion: "southeast_asia",
-      biggestBlocker: "employer_permission",
-      followupPreference: "receive_result",
-    },
-    contact: {
-      method: "none",
-      consentToContact: false,
-      note: "probe signal",
-    },
+    interestDecision: "interested",
   }),
 });
 
-if (!result.submissionId || result.recordedVotes !== 2) {
-  throw new Error(`unexpected submit result: ${JSON.stringify(result)}`);
+if (!interestedResult.submissionId || interestedResult.interestDecision !== "interested") {
+  throw new Error(`unexpected interested submit result: ${JSON.stringify(interestedResult)}`);
 }
 
-console.log(`probe ok: ${result.submissionId} votes=${result.recordedVotes}`);
+const notInterestedResult = await requestJson("/api/market-vote/submit", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    interestDecision: "not_interested",
+  }),
+});
+
+if (!notInterestedResult.submissionId || notInterestedResult.interestDecision !== "not_interested") {
+  throw new Error(`unexpected not-interested submit result: ${JSON.stringify(notInterestedResult)}`);
+}
+
+const expectedTotal = (beforeStats.totalSubmissions ?? 0) + 2;
+const expectedInterested = (beforeStats.interestedSubmissions ?? 0) + 1;
+const expectedNotInterested = (beforeStats.notInterestedSubmissions ?? 0) + 1;
+
+if (notInterestedResult.stats.totalSubmissions < expectedTotal) {
+  throw new Error(`totalSubmissions did not increase as expected: ${JSON.stringify(notInterestedResult.stats)}`);
+}
+
+if (notInterestedResult.stats.interestedSubmissions < expectedInterested) {
+  throw new Error(`interestedSubmissions did not increase as expected: ${JSON.stringify(notInterestedResult.stats)}`);
+}
+
+if (notInterestedResult.stats.notInterestedSubmissions < expectedNotInterested) {
+  throw new Error(`notInterestedSubmissions did not increase as expected: ${JSON.stringify(notInterestedResult.stats)}`);
+}
+
+console.log(
+  `probe ok: interested=${interestedResult.submissionId} not_interested=${notInterestedResult.submissionId} total=${notInterestedResult.stats.totalSubmissions}`,
+);

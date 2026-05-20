@@ -9,8 +9,7 @@ The experience combines:
 - a compact service promise and market signal summary
 - one-sentence service descriptions
 - P0, P1, and P2 service groups
-- a lightweight audience profile
-- optional contact and follow-up preference
+- one binary decision card: interested or not interested
 
 The page should feel simpler than a research survey. The visitor should understand the offer before deciding whether to participate.
 
@@ -18,45 +17,37 @@ The page should feel simpler than a research survey. The visitor should understa
 
 1. Service promise band
    - total homepage page views
-   - total interest submissions
-   - contactable submissions
-   - most requested service
-   - primary audience segment
-   - primary concern
+   - total responses
+   - interested responses
+   - not-interested responses
+   - interested share
    - machine-readable page summary for search and AI assistants
 2. Three explanation cards
    - see what Go Nomad can help with
-   - mark willingness only when interested
+   - make a yes or no decision in one click
    - understand that services launch by stage
-3. Semantic summary block
+3. Decision card
+   - interested action
+   - not-interested action
+   - inline success and error state
+4. Semantic summary block
    - what this page is
    - who it is for
    - what happens after a submission
-4. FAQ block
+5. FAQ block
    - is this a paid flow or booking workflow
    - who should use this page
    - what a submission changes for the product roadmap
-5. Service groups
+6. Service groups
    - P0 near-term service group
    - P1 audience-specific expansion group
    - P2 network and tool group
-6. Audience profile
-   - segment
-   - target region
-   - biggest blocker
-7. Optional contact
-   - follow-up preference
-   - contact method
-   - contact value
-   - note
-   - consent flag
 
 ## Interaction Rules
 
-- A submission requires at least one selected service interest.
-- Service rows use one simple action: willing to use or learn more.
-- Contact fields are optional and must not block interest persistence.
-- The follow-up preference is a research signal, not a scheduling workflow.
+- A submission is one binary signal: interested or not interested.
+- A submission must not require selecting services, leaving profile fields, or leaving contact details.
+- Service rows are informational in this version of the page.
 - After submit, the page refreshes aggregate signals and shows the saved submission id.
 - Access logging is best-effort only; if log persistence fails, page render and market-vote API behavior must continue and the failure should stay in server logs only.
 - Search optimization must not depend on client-side interaction; the essential page summary, service stages, and brand identity need to exist in server-rendered metadata.
@@ -66,8 +57,8 @@ The page should feel simpler than a research survey. The visitor should understa
 
 ## Responsive Rules
 
-- Use mobile-first layout: hero summary, explanation cards, service rows, then profile/contact panels.
-- Use a two-column desktop layout only when there is enough width; keep the right panel sticky on desktop and normal-flow on mobile.
+- Use mobile-first layout: hero summary, explanation cards, decision card, semantic blocks, then service rows.
+- Keep the primary interested / not-interested actions visible without requiring the visitor to reach a side panel.
 - Keep all form controls and service actions at stable heights so dynamic counts do not shift the layout.
 - Avoid viewport-based font scaling; use fixed base sizes with breakpoint adjustments.
 - Long Chinese labels, service titles, and generated ids must wrap inside cards and controls.
@@ -99,7 +90,7 @@ The page should feel simpler than a research survey. The visitor should understa
 
 - TypeScript and production build must pass with `yarn build` or the root `build:adv` script.
 - Lint must pass with `yarn lint` or the root `lint:adv` script.
-- The probe check must confirm that the SQLite-backed submit endpoint records service interest and returns updated aggregate data.
+- The probe check must confirm that the SQLite-backed submit endpoint records both interested and not-interested signals and returns updated aggregate data.
 - A request to the homepage or market-vote API must append an access-log row containing request path, method, IP, and selected header fields without changing the user-facing response contract.
 - The homepage summary band must show a browser-visible page-view count derived from logged `GET /` requests.
 - Production deployment must verify the SQLite data mount is writable before the container is expected to become healthy.

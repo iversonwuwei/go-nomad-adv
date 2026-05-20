@@ -4,9 +4,9 @@ const DEFAULT_SITE_URL = "https://vote.go-nomads.com";
 const LOCAL_SITE_URL = "http://localhost:6003";
 
 export const SITE_NAME = "Go Nomad ADV";
-export const SITE_TITLE = "Go Nomad ADV | 数字游民服务说明与兴趣收集";
+export const SITE_TITLE = "Go Nomad ADV | 数字游民服务说明与兴趣判断";
 export const SITE_DESCRIPTION =
-  "Go Nomad 面向中国市场的数字游民服务说明、兴趣收集与受众画像入口，帮助访客判断出发可行性、签证与税务风险、远程出境工作沟通等服务方向。";
+  "Go Nomad 面向中国市场的数字游民服务说明与兴趣判断入口，访客只需点击感兴趣或不感兴趣，帮助判断这套服务是否值得继续投入。";
 export const SOCIAL_IMAGE_ALT = "Go Nomad ADV social preview";
 export const SOCIAL_IMAGE_PATH = "/opengraph-image";
 export const TWITTER_IMAGE_PATH = "/twitter-image";
@@ -35,7 +35,7 @@ export const SEMANTIC_SUMMARY_CARDS = [
   {
     eyebrow: "提交后意味着什么",
     title: "Go Nomad 会按真实需求决定 P0、P1、P2 优先级",
-    body: "你勾选的服务兴趣、人群画像和主要顾虑，会帮助 Go Nomad 判断先上线哪类数字游民服务，不会直接触发收费或预约。",
+    body: "你的感兴趣或不感兴趣反馈，会帮助 Go Nomad 判断这套服务是否值得继续投入，不会直接触发收费或预约。",
   },
 ] as const;
 
@@ -46,8 +46,8 @@ export const TARGET_AUDIENCE_LINES = [
 ] as const;
 
 export const PRIMARY_ACTION_LINES = [
-  "在页面勾选愿意使用或继续了解的服务方向。",
-  "可选填写人群画像、地区偏好、主要顾虑与联系方式。",
+  "阅读这套服务说明后，直接点击感兴趣或不感兴趣。",
+  "页面会立即刷新整体反馈计数，不要求留下联系方式。",
 ] as const;
 
 export const FAQ_ITEMS = [
@@ -57,7 +57,7 @@ export const FAQ_ITEMS = [
   },
   {
     question: "这是不是付款、预约或正式下单页面？",
-    answer: "不是。这一页只用于说明潜在服务并收集真实兴趣、人群画像和可选联系方式，不会直接触发付款、预约或正式订单。",
+    answer: "不是。这一页只用于说明潜在服务并收集真实兴趣信号，不会直接触发付款、预约或正式订单。",
   },
   {
     question: "谁最适合使用这页？",
@@ -65,7 +65,7 @@ export const FAQ_ITEMS = [
   },
   {
     question: "提交兴趣后会发生什么？",
-    answer: "你提交的服务兴趣、主要顾虑和可选联系方式，会帮助 Go Nomad 判断 P0、P1、P2 哪类服务应该先上线；它本身不会改变你的账户状态或创建付费流程。",
+    answer: "你提交的感兴趣或不感兴趣信号，会帮助 Go Nomad 判断这套服务是否值得继续推进；它本身不会改变你的账户状态或创建付费流程。",
   },
 ] as const;
 
@@ -197,7 +197,7 @@ export function buildLlmsText(features: MarketFeature[]) {
   return [
     `# ${SITE_NAME}`,
     "",
-    "> Go Nomad 的中国市场数字游民服务说明与兴趣收集页面。",
+    "> Go Nomad 的中国市场数字游民服务说明与兴趣判断页面。",
     "",
     "## Canonical URL",
     getAbsoluteUrl("/"),
@@ -219,7 +219,7 @@ export function buildLlmsText(features: MarketFeature[]) {
     "",
     "## Machine-readable Notes",
     "- This page is a research and demand validation page, not a payment or booking flow.",
-    "- The page helps determine which digital nomad service line Go Nomad should launch first for China-market users.",
+    "- The page helps determine whether this digital nomad service set is worth pursuing for China-market users.",
     "",
     "## Resources",
     `- Sitemap: ${getAbsoluteUrl("/sitemap.xml")}`,
